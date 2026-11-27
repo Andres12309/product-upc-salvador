@@ -38,18 +38,26 @@ describe('AuthService', () => {
     await expect(service.login('admin@prueba.local', 'otra')).rejects.toThrow('La contraseña es incorrecta');
   });
 
-  it('devuelve solo el accessToken cuando las credenciales son válidas', async () => {
+  it('rechaza un login válido si no llega el secreto', async () => {
     users.findCredentials.mockResolvedValue({
       user: { id: '1', username: 'admin@prueba.local', role: 'admin' },
       passwordHash: await hasher.hash('Admin123!'),
     });
-    await expect(service.login('admin@prueba.local', 'Admin123!')).resolves.toEqual({
+    await expect(service.login('admin@prueba.local', 'Admin123!')).rejects.toThrow('Falta el secreto');
+    expect(jwt.signAsync).not.toHaveBeenCalled();
+  });
+
+  it('firma con el secreto que manda el front y no pone vencimiento', async () => {
+    users.findCredentials.mockResolvedValue({
+      user: { id: '1', username: 'admin@prueba.local', role: 'admin' },
+      passwordHash: await hasher.hash('Admin123!'),
+    });
+    await expect(service.login('admin@prueba.local', 'Admin123!', 'cambia-este-secreto')).resolves.toEqual({
       accessToken: 'token-firmado',
     });
-    expect(jwt.signAsync).toHaveBeenCalledWith({
-      sub: '1',
-      username: 'admin@prueba.local',
-      role: 'admin',
-    });
+    expect(jwt.signAsync).toHaveBeenCalledWith(
+      { sub: '1', username: 'admin@prueba.local', role: 'admin' },
+      { secret: 'cambia-este-secreto', algorithm: 'HS256' },
+    );
   });
 });

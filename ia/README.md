@@ -1,29 +1,23 @@
 # Uso de IA
 
-Herramienta: Cursor. El apunte de esta entrega está en [prompts/2026-11-27.md](prompts/2026-11-27.md). El orden de lo que falta está en [planes/plan-inicial.md](planes/plan-inicial.md).
+Herramienta: Cursor, el 27 de noviembre de 2026. Los pedidos están en [prompts/2026-11-27.md](prompts/2026-11-27.md). Los planes están en [planes/](planes/).
 
-## Qué entra en el commit
+## Qué se aceptó
 
-Acceso listo y tablas del catálogo vacías. La historia 1 solo carga el CSV.
+- NestJS, Prisma, DTO y mappers. Los recursos nuevos salen con el CLI de Nest.
+- `POST /load` sin token. Una fila dudosa se guarda con `needsAttention`. El mismo UPC con otros datos no crea un segundo producto.
+- El JWT es HS256, lleva el rol y no vence. La API lo firma y lo verifica con el `X-Jwt-Secret` que manda el front.
+- En los GET de consulta el token va en `Authorization: Bearer`. En crear, editar y eliminar va en el campo `token`. El borrado es `GET /products/:id/delete` y, por ser eliminar, también manda ese campo.
+- El manager ve el mismo listado y el mismo detalle. No ve crear, editar ni eliminar, y la API responde 403.
+- `GET /health` es público. Al cambiar la categoría, el formulario vacía la subcategoría y carga solo las de esa categoría.
 
-- Login `GET /auth/login`. Respuesta `{ accessToken }`. El 401 dice «El usuario no existe» o «La contraseña es incorrecta».
-- Token HS256 con `sub`, `username` y `role`. Firma `@nestjs/jwt` con `JWT_SECRET` tal como viene en `.env`. Vence según `JWT_EXPIRES_IN`.
-- Contraseña con hash scrypt (`PasswordHasher`). No hay clave en claro.
-- Dos guards: el primero exige un token válido y carga el usuario de la base; el segundo mira `@RequirePermissions` contra `ROLE_PERMISSIONS`. Admin lee y escribe. Manager solo lee. Sin token: 401. Sin permiso: 403.
-- `GET /auth/me` pide sesión y no pide un permiso de catálogo. El front lo usa al recargar.
-- En POST, PUT y PATCH el token puede ir en el body. En el resto va en `Authorization: Bearer`.
-- `npm run db:seed` abre la base y llama a `ensureDefaultUsers()` en el módulo `users`. Crea `admin@prueba.local` / `Admin123!` y `manager@prueba.local` / `Manager123!` si no existen. No reescribe un hash ya guardado. La historia 1 usa esa misma función.
+## Qué se cambió respecto al enunciado
+
+- El UPC es texto de 12 caracteres. `010433218194` y `10433218194` siguen siendo distintos.
+- La contraseña queda en hash scrypt. La base no guarda `Admin123!` en claro. `ensureDefaultUsers` no reescribe un hash ya guardado.
 - Un error desconocido responde 500 con «Error interno del servidor», sin stack ni SQL.
-- Entrada y salida del login pasan por DTO y `AuthMapper`.
+- Las pruebas usan Vitest (`npm test` y `npm run test:e2e`). Nest 12 es ESM y Jest no levanta esta API. Cubren campos obligatorios, UPC único, login y permisos por rol.
 
-## Decisiones que el código ya cumple
+## Qué se descartó
 
-1. `upcCode` es texto de 12 caracteres. `010433218194` y `10433218194` son productos distintos.
-2. La carga (historia 1) recorta espacios, pasa códigos a mayúsculas, omite la fila idéntica, no inserta un segundo producto si el UPC ya existe con otros datos, y rechaza UPC que no sea 12 dígitos, campos vacíos y una subcategoría de otra categoría. El `Id` del CSV no es llave.
-3. `addedBy` y `modifiedBy` son texto. El CSV trae autores que no inician sesión.
-4. El front guarda el token en `localStorage` (`accessToken`). No conoce `JWT_SECRET`.
-5. Pruebas con Vitest. Login, 401 y 403 ya están. Las reglas del producto esperan al CRUD.
-
-## Fuera de este paso
-
-Paginación, buscador, Swagger, colas, refresh tokens, tablas de permisos, Docker de la API y del front, panel de usuarios y CRUD de categorías.
+Paginación, buscador, Swagger, colas, refresh tokens, tablas de permisos, Docker del front, panel de usuarios y CRUD de categorías y subcategorías. El contenedor de la API sí quedó, solo como healthcheck, en el perfil `api`.

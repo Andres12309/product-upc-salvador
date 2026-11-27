@@ -23,10 +23,11 @@ Este paso deja el acceso funcionando y las tablas vacías del catálogo, para qu
 ## Acceso
 
 - Login: `GET /auth/login?username=&password=`. El query es `LoginQueryDto` y la respuesta es `LoginResponseDto` (`{ accessToken }`). `GET /auth/me` responde `SessionUserDto`, armado por `AuthMapper`.
-- El token es HS256, lleva `sub`, `username` y `role`, y vence con `JWT_EXPIRES_IN` (1 hora).
-- `JWT_SECRET` es el del `.env` entregado (`cambia-este-secreto`). Se usa tal cual. Queda corto para el firmador de `@nestjs/authentication`, así que firma `@nestjs/jwt`.
-- `X-Jwt-Secret` no se lee. El header se permite en CORS para que el navegador no lo bloquee si alguien lo manda.
-- Consultas: `Authorization: Bearer`. Alta y edición: campo `token` en el body; si no viene, también vale el header. El borrado será un GET, así que usará el header.
+- El token es HS256, lleva `sub`, `username` y `role`, y no vence. La historia 3 pide que no expire.
+- `JWT_SECRET` es el del `.env` entregado (`cambia-este-secreto`, 19 bytes, sin relleno). Queda corto para el firmador de `@nestjs/authentication`, así que firma `@nestjs/jwt`.
+- El front guarda ese valor en `NEXT_PUBLIC_JWT_SECRET` y lo manda en `X-Jwt-Secret` en cada petición, incluido el login. La API firma y verifica con ese header. Sin el header, el login válido responde 401 «Falta el secreto».
+- CORS refleja cualquier origen. El header `X-Jwt-Secret` sigue permitido.
+- Consultas GET: `Authorization: Bearer`. Crear, editar y eliminar: campo `token` en el body. El borrado es GET y también manda ese campo; si no llega, vale el header.
 - Sin token o con uno inválido: 401. Manager en una ruta `products.write`: 403.
 - `GET /auth/me` devuelve el usuario cargado de la base, sin el hash. El Front lo usa al recargar. Cualquier sesión válida entra: no pide un permiso de catálogo.
 - `npm run db:seed` abre la base y llama a `ensureDefaultUsers()` del módulo `users`. La historia 1 llama a esa misma función. Si el usuario ya existe, el hash no cambia. Auth importa ese módulo para buscar la cuenta en el login.
