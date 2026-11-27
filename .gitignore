@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Ayuda local del editor. No forma parte de la entrega.
+api/.cursor/
+
+# .env sí se versiona: la prueba pide que el proyecto levante sin configurar nada.
