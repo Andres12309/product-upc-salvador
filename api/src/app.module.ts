@@ -9,6 +9,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
+import { HealthModule } from './health/health.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CatalogModule } from './catalog/catalog.module.js';
     AuthModule,
     UsersModule,
     CatalogModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useExisting: JwtAuthGuard },

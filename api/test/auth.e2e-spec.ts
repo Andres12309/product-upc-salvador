@@ -91,6 +91,12 @@ describe('Auth (e2e)', () => {
     expect(otherSecret.status).toBe(401);
   });
 
+  it('informa que la API y la base están arriba', async () => {
+    const health = await request(app.getHttpServer()).get('/health');
+    expect(health.status).toBe(200);
+    expect(health.body).toEqual({ status: 'ok', api: 'up', database: 'up' });
+  });
+
   it('responde 403 cuando el manager escribe y 200 cuando escribe el admin', async () => {
     const manager = await login('manager@prueba.local', 'Manager123!');
     const denied = await request(app.getHttpServer())

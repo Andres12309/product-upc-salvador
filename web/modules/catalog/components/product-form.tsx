@@ -146,6 +146,7 @@ export function ProductForm({
             onChange={(event) => {
               field.onChange(event);
               setValue('subCategoryCode', '');
+              setSubcategories([]);
             }}
           >
             <MenuItem value="">Elige una categoría</MenuItem>
