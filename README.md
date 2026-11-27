@@ -48,6 +48,18 @@ npm run start:dev
 
 `db:deploy` aplica la migración. `db:seed` crea `admin@prueba.local` / `Admin123!` y `manager@prueba.local` / `Manager123!` si todavía no existen. El login es `GET /auth/login`.
 
+## Carga inicial
+
+Con la API en marcha, desde `api`:
+
+```bash
+npm run load
+```
+
+No pide token. Lee `data/productos.csv`, crea categorías, subcategorías y productos, y devuelve cuántos cargó, cuántos omitió y cuántos quedaron para revisión. Una fila dudosa se guarda con `needsAttention`; no se tira. El mismo UPC con otros datos no crea un segundo producto: el aviso queda en el que ya existe. Se puede ejecutar otra vez: no duplica. También asegura las dos cuentas de prueba.
+
+`GET /categories/:categoryCode/subcategories` pide el token y devuelve la categoría, sus subcategorías con productos, y los productos sin subcategoría.
+
 ## Front
 
 Puerto 3001.
@@ -60,4 +72,4 @@ npm run dev
 
 ## Estado
 
-La base, el esquema y el acceso ya están. El Front inicia sesión y guarda el token. La carga del CSV y el catálogo siguen el orden de [`ia/planes/plan-inicial.md`](ia/planes/plan-inicial.md).
+La base, el acceso, la carga del CSV y la consulta de una categoría ya están. El Front inicia sesión. El listado de productos y el CRUD siguen el orden de [`ia/planes/plan-inicial.md`](ia/planes/plan-inicial.md).

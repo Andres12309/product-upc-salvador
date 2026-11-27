@@ -27,9 +27,10 @@ model User {
 
 /// Sin nombre: el CSV no lo trae. El código se guarda en mayúsculas.
 model Category {
-  id            String        @id @default(uuid()) @db.Uuid
-  code          String        @unique @db.VarChar(32)
-  subcategories Subcategory[]
+  id              String        @id @default(uuid()) @db.Uuid
+  code            String        @unique @db.VarChar(32)
+  subcategories   Subcategory[]
+  pendingProducts Product[]    @relation("DeclaredCategory")
 
   @@map("category")
 }
@@ -47,17 +48,24 @@ model Subcategory {
 }
 
 /// Texto, no número: conserva el cero inicial. El Id del CSV no se guarda.
+/// needsAttention: la fila se guardó, pero hay que revisarla.
+/// subcategoryId queda vacío solo si el CSV no trae subcategoría. En ese caso categoryId conserva la categoría declarada.
 model Product {
-  id             String      @id @default(uuid()) @db.Uuid
-  upcCode        String      @unique @db.VarChar(12)
-  upcDescription String
-  subcategoryId  String      @db.Uuid
-  subcategory    Subcategory @relation(fields: [subcategoryId], references: [id])
-  dateAdded      DateTime    @db.Timestamptz(6)
-  updatedDate    DateTime    @db.Timestamptz(6)
-  addedBy        String      @db.VarChar(255)
-  modifiedBy     String      @db.VarChar(255)
+  id              String       @id @default(uuid()) @db.Uuid
+  upcCode         String       @unique @db.VarChar(12)
+  upcDescription  String
+  subcategoryId   String?      @db.Uuid
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  categoryId      String?      @db.Uuid
+  category        Category?    @relation("DeclaredCategory", fields: [categoryId], references: [id], onDelete: Restrict)
+  needsAttention  Boolean      @default(false)
+  attentionReason String?
+  dateAdded       DateTime?    @db.Timestamptz(6)
+  updatedDate     DateTime?    @db.Timestamptz(6)
+  addedBy         String       @db.VarChar(255)
+  modifiedBy      String       @db.VarChar(255)
 
   @@index([subcategoryId])
+  @@index([categoryId])
   @@map("product")
 }

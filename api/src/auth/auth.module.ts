@@ -31,6 +31,6 @@ import { AuthService } from './auth.service.js';
     PermissionsGuard,
     { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
   ],
-  exports: [JwtModule, JwtAuthGuard, PermissionsGuard],
+  exports: [JwtModule, JwtAuthGuard, PermissionsGuard, PasswordHasher],
 })
 export class AuthModule {}

@@ -4,7 +4,7 @@ Herramienta: Cursor. El apunte de esta entrega está en [prompts/2026-11-27.md](
 
 ## Qué entra en el commit
 
-Acceso listo y tablas del catálogo vacías. La historia 1 solo carga el CSV.
+Acceso listo, carga del CSV en `POST /load` y consulta de una categoría. El listado de productos todavía no.
 
 - Login `GET /auth/login`. Respuesta `{ accessToken }`. El 401 dice «El usuario no existe» o «La contraseña es incorrecta».
 - Token HS256 con `sub`, `username` y `role`. Firma `@nestjs/jwt` con `JWT_SECRET` tal como viene en `.env`. Vence según `JWT_EXPIRES_IN`.
@@ -19,7 +19,7 @@ Acceso listo y tablas del catálogo vacías. La historia 1 solo carga el CSV.
 ## Decisiones que el código ya cumple
 
 1. `upcCode` es texto de 12 caracteres. `010433218194` y `10433218194` son productos distintos.
-2. La carga (historia 1) recorta espacios, pasa códigos a mayúsculas, omite la fila idéntica, no inserta un segundo producto si el UPC ya existe con otros datos, y rechaza UPC que no sea 12 dígitos, campos vacíos y una subcategoría de otra categoría. El `Id` del CSV no es llave.
+2. `POST /load` no pide token. Recorta espacios, pasa códigos a mayúsculas y omite la fila idéntica. Una fila dudosa se guarda con `needsAttention` (UPC que no son 12 dígitos, campos vacíos, fecha rara, coma sin comillas o subcategoría de otra categoría). El mismo UPC con otros datos no crea un segundo producto: el aviso queda en el que ya existe. El `Id` del CSV no es llave. `GET /categories/:categoryCode/subcategories` pide `categories.read`.
 3. `addedBy` y `modifiedBy` son texto. El CSV trae autores que no inician sesión.
 4. El front guarda el token en `localStorage` (`accessToken`). No conoce `JWT_SECRET`.
 5. Pruebas con Vitest. Login, 401 y 403 ya están. Las reglas del producto esperan al CRUD.
