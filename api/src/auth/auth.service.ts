@@ -13,17 +13,21 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async login(username: string, password: string): Promise<LoginResponseDto> {
+  async login(username: string, password: string, secret?: string): Promise<LoginResponseDto> {
     const found = await this.users.findCredentials(username);
     const valid = await this.passwordHasher.verify(password, found?.passwordHash);
     if (!found) throw new UnauthorizedException('El usuario no existe');
     if (!valid) throw new UnauthorizedException('La contraseña es incorrecta');
+    if (!secret) throw new UnauthorizedException('Falta el secreto');
 
-    const accessToken = await this.jwt.signAsync({
-      sub: found.user.id,
-      username: found.user.username,
-      role: found.user.role,
-    });
+    const accessToken = await this.jwt.signAsync(
+      {
+        sub: found.user.id,
+        username: found.user.username,
+        role: found.user.role,
+      },
+      { secret, algorithm: 'HS256' },
+    );
     return AuthMapper.toLoginResponse(accessToken);
   }
 }

@@ -69,10 +69,10 @@ export function ProductPage({ id }: { id: string }) {
           <ProductDetail product={product} />
         </Paper>
       ) : null}
-      {user && action === 'editar' ? (
+      {canWrite && user && action === 'editar' ? (
         <ProductDialog open user={user} id={id} products={products} onClose={close} onSaved={saved} />
       ) : null}
-      {action === 'eliminar' && product ? (
+      {canWrite && action === 'eliminar' && product ? (
         <DeleteConfirm
           product={product}
           onCancel={close}

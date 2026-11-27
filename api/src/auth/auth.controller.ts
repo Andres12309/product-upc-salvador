@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Headers, Query } from '@nestjs/common';
 import type { AuthUser } from '../users/user.js';
 import { AuthService } from './auth.service.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -14,8 +14,12 @@ export class AuthController {
 
   @Public()
   @Get('login')
-  login(@Query() query: LoginQueryDto): Promise<LoginResponseDto> {
-    return this.auth.login(query.username, query.password);
+  login(
+    @Query() query: LoginQueryDto,
+    @Headers('x-jwt-secret') secret?: string | string[],
+  ): Promise<LoginResponseDto> {
+    const value = Array.isArray(secret) ? secret[0] : secret;
+    return this.auth.login(query.username, query.password, value?.trim() || undefined);
   }
 
   @Get('me')

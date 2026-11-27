@@ -35,11 +35,13 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  async function login(username: string, password: string) {
-    const response = await request(app.getHttpServer())
+  const secret = 'cambia-este-secreto';
+
+  async function login(username: string, password: string, header = secret) {
+    return request(app.getHttpServer())
       .get('/auth/login')
+      .set('X-Jwt-Secret', header)
       .query({ username, password });
-    return response;
   }
 
   it('inicia sesión y rechaza usuario o contraseña con mensajes distintos', async () => {
@@ -49,8 +51,16 @@ describe('Auth (e2e)', () => {
     const payload = JSON.parse(Buffer.from(ok.body.accessToken.split('.')[1], 'base64url').toString()) as {
       role: string;
       username: string;
+      exp?: number;
     };
     expect(payload).toMatchObject({ role: 'admin', username: 'admin@prueba.local' });
+    expect(payload.exp).toBeUndefined();
+
+    const noSecret = await request(app.getHttpServer())
+      .get('/auth/login')
+      .query({ username: 'admin@prueba.local', password: 'Admin123!' });
+    expect(noSecret.status).toBe(401);
+    expect(noSecret.body.message).toBe('Falta el secreto');
 
     const missing = await login('nadie@prueba.local', 'Admin123!');
     expect(missing.status).toBe(401);
@@ -68,22 +78,31 @@ describe('Auth (e2e)', () => {
     const ok = await login('manager@prueba.local', 'Manager123!');
     const me = await request(app.getHttpServer())
       .get('/auth/me')
+      .set('X-Jwt-Secret', secret)
       .set('Authorization', `Bearer ${ok.body.accessToken}`);
     expect(me.status).toBe(200);
     expect(me.body).toMatchObject({ username: 'manager@prueba.local', role: 'manager' });
     expect(me.body.passwordHash).toBeUndefined();
+
+    const otherSecret = await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('X-Jwt-Secret', 'otro-secreto')
+      .set('Authorization', `Bearer ${ok.body.accessToken}`);
+    expect(otherSecret.status).toBe(401);
   });
 
   it('responde 403 cuando el manager escribe y 200 cuando escribe el admin', async () => {
     const manager = await login('manager@prueba.local', 'Manager123!');
     const denied = await request(app.getHttpServer())
       .post('/access-check')
+      .set('X-Jwt-Secret', secret)
       .send({ token: manager.body.accessToken });
     expect(denied.status).toBe(403);
 
     const admin = await login('admin@prueba.local', 'Admin123!');
     const allowed = await request(app.getHttpServer())
       .post('/access-check')
+      .set('X-Jwt-Secret', secret)
       .send({ token: admin.body.accessToken });
     expect(allowed.status).toBe(200);
     expect(allowed.body).toEqual({ ok: true });

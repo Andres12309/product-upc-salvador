@@ -7,7 +7,7 @@ import { Public } from '../decorators/public.decorator.js';
 
 export type RequestWithUser = {
   method?: string;
-  headers?: { authorization?: string | string[] };
+  headers?: Record<string, string | string[] | undefined>;
   body?: { token?: unknown };
   user?: AuthUser;
 };
@@ -28,10 +28,12 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const token = this.readToken(request);
     if (!token) throw new UnauthorizedException('Falta el token');
+    const secret = this.readSecret(request);
+    if (!secret) throw new UnauthorizedException('Falta el secreto');
 
     let sub: string;
     try {
-      ({ sub } = await this.jwt.verifyAsync<{ sub: string }>(token));
+      ({ sub } = await this.jwt.verifyAsync<{ sub: string }>(token, { secret }));
     } catch {
       throw new UnauthorizedException('Token inválido o vencido');
     }
@@ -52,5 +54,12 @@ export class JwtAuthGuard implements CanActivate {
     if (!header?.startsWith('Bearer ')) return null;
     const token = header.slice('Bearer '.length).trim();
     return token || null;
+  }
+
+  private readSecret(request: RequestWithUser): string | null {
+    const raw = request.headers?.['x-jwt-secret'];
+    const header = Array.isArray(raw) ? raw[0] : raw;
+    const secret = header?.trim();
+    return secret || null;
   }
 }

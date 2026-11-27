@@ -7,6 +7,7 @@ import { configureApp } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 const upc = '000000000099';
+const jwtSecret = 'cambia-este-secreto';
 
 const productBody = {
   upcDescription: 'Producto de prueba',
@@ -43,7 +44,10 @@ describe('Productos (e2e)', () => {
   });
 
   async function login(username: string, password: string): Promise<string> {
-    const response = await request(app.getHttpServer()).get('/auth/login').query({ username, password });
+    const response = await request(app.getHttpServer())
+      .get('/auth/login')
+      .set('X-Jwt-Secret', jwtSecret)
+      .query({ username, password });
     return response.body.accessToken as string;
   }
 
@@ -53,12 +57,14 @@ describe('Productos (e2e)', () => {
 
     const missingFields = await request(app.getHttpServer())
       .post('/products')
+      .set('X-Jwt-Secret', jwtSecret)
       .send({ token: adminToken });
     expect(missingFields.status).toBe(400);
     expect(missingFields.body.message).toEqual(expect.any(String));
 
     const created = await request(app.getHttpServer())
       .post('/products')
+      .set('X-Jwt-Secret', jwtSecret)
       .send({ ...productBody, token: adminToken });
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({
@@ -73,47 +79,100 @@ describe('Productos (e2e)', () => {
 
     const list = await request(app.getHttpServer())
       .get('/products')
+      .set('X-Jwt-Secret', jwtSecret)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(list.status).toBe(200);
     expect(list.body.some((item: { upcCode: string }) => item.upcCode === upc)).toBe(true);
 
     const detail = await request(app.getHttpServer())
       .get(`/products/${created.body.id}`)
+      .set('X-Jwt-Secret', jwtSecret)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(detail.status).toBe(200);
     expect(detail.body.addedBy).toBe('admin@prueba.local');
 
     const duplicate = await request(app.getHttpServer())
       .post('/products')
+      .set('X-Jwt-Secret', jwtSecret)
       .send({ ...productBody, token: adminToken, upcDescription: 'Otro' });
     expect(duplicate.status).toBe(409);
     expect(duplicate.body.message).toBe('El UPC ya existe.');
 
     const wrongCategory = await request(app.getHttpServer())
       .put(`/products/${created.body.id}`)
+      .set('X-Jwt-Secret', jwtSecret)
       .send({ ...productBody, token: adminToken, categoryCode: 'BEB' });
     expect(wrongCategory.status).toBe(400);
     expect(wrongCategory.body.message).toBe('La subcategoría no pertenece a la categoría.');
 
-    const manager = await request(app.getHttpServer())
+    const managerList = await request(app.getHttpServer())
+      .get('/products')
+      .set('X-Jwt-Secret', jwtSecret)
+      .set('Authorization', `Bearer ${managerToken}`);
+    expect(managerList.status).toBe(200);
+    expect(managerList.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          upcDescription: 'Producto de prueba',
+          upcCode: upc,
+          categoryCode: 'LAC',
+          subCategoryCode: 'LAC-LEC',
+          dateAdded: '2026-01-15T14:30:00Z',
+          updatedDate: '2026-01-15T14:30:00Z',
+        }),
+      ]),
+    );
+
+    const managerDetail = await request(app.getHttpServer())
+      .get(`/products/${created.body.id}`)
+      .set('X-Jwt-Secret', jwtSecret)
+      .set('Authorization', `Bearer ${managerToken}`);
+    expect(managerDetail.status).toBe(200);
+    expect(managerDetail.body).toMatchObject({
+      upcCode: upc,
+      upcDescription: 'Producto de prueba',
+      categoryCode: 'LAC',
+      subCategoryCode: 'LAC-LEC',
+      addedBy: 'admin@prueba.local',
+      modifiedBy: 'admin@prueba.local',
+    });
+
+    const managerCreate = await request(app.getHttpServer())
       .post('/products')
+      .set('X-Jwt-Secret', jwtSecret)
       .send({ ...productBody, token: managerToken, upcCode: '000000000098' });
-    expect(manager.status).toBe(403);
+    expect(managerCreate.status).toBe(403);
+
+    const managerEdit = await request(app.getHttpServer())
+      .put(`/products/${created.body.id}`)
+      .set('X-Jwt-Secret', jwtSecret)
+      .send({ ...productBody, token: managerToken });
+    expect(managerEdit.status).toBe(403);
+
+    const managerDelete = await request(app.getHttpServer())
+      .get(`/products/${created.body.id}/delete`)
+      .set('X-Jwt-Secret', jwtSecret)
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ token: managerToken });
+    expect(managerDelete.status).toBe(403);
 
     const missing = await request(app.getHttpServer())
       .get('/products/00000000-0000-4000-8000-000000000099')
+      .set('X-Jwt-Secret', jwtSecret)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(missing.status).toBe(404);
     expect(missing.body.message).toBe('No existe el producto.');
 
     const removed = await request(app.getHttpServer())
       .get(`/products/${created.body.id}/delete`)
+      .set('X-Jwt-Secret', jwtSecret)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ token: adminToken });
     expect(removed.status).toBe(200);
 
     const gone = await request(app.getHttpServer())
       .get(`/products/${created.body.id}`)
+      .set('X-Jwt-Secret', jwtSecret)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(gone.status).toBe(404);
   });

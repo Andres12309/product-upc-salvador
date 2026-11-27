@@ -8,6 +8,8 @@ export const http = axios.create({
 });
 
 http.interceptors.request.use((config) => {
+  const secret = process.env.NEXT_PUBLIC_JWT_SECRET;
+  if (secret) config.headers['X-Jwt-Secret'] = secret;
   if (typeof window === 'undefined') return config;
   const token = readToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;

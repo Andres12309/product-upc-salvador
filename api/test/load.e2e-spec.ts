@@ -58,6 +58,7 @@ describe('Carga (e2e)', () => {
 
     const login = await request(app.getHttpServer())
       .get('/auth/login')
+      .set('X-Jwt-Secret', 'cambia-este-secreto')
       .query({ username: 'admin@prueba.local', password: 'Admin123!' });
     const token = login.body.accessToken as string;
 
@@ -66,6 +67,7 @@ describe('Carga (e2e)', () => {
 
     const tree = await request(app.getHttpServer())
       .get('/categories/LAC/subcategories')
+      .set('X-Jwt-Secret', 'cambia-este-secreto')
       .set('Authorization', `Bearer ${token}`);
     expect(tree.status).toBe(200);
     expect(tree.body.code).toBe('LAC');
@@ -79,6 +81,7 @@ describe('Carga (e2e)', () => {
 
     const snacks = await request(app.getHttpServer())
       .get('/categories/snk/subcategories')
+      .set('X-Jwt-Secret', 'cambia-este-secreto')
       .set('Authorization', `Bearer ${token}`);
     expect(snacks.status).toBe(200);
     expect(snacks.body.pending).toEqual(
@@ -87,6 +90,7 @@ describe('Carga (e2e)', () => {
 
     const missing = await request(app.getHttpServer())
       .get('/categories/NOPE/subcategories')
+      .set('X-Jwt-Secret', 'cambia-este-secreto')
       .set('Authorization', `Bearer ${token}`);
     expect(missing.status).toBe(404);
 

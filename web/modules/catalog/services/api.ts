@@ -50,6 +50,6 @@ export function saveProduct(draft: ProductDraft, id?: string): Promise<Product> 
 
 export function deleteProduct(id: string): Promise<void> {
   return call(async () => {
-    await http.get(`/products/${id}/delete`);
+    await http.get(`/products/${id}/delete`, { data: { token: readToken() } });
   }, 'No se pudo eliminar el producto');
 }

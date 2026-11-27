@@ -74,7 +74,7 @@ export function ProductList() {
           />
         </Paper>
       ) : null}
-      {user && (action === 'nuevo' || action === 'editar') ? (
+      {canWrite && user && (action === 'nuevo' || action === 'editar') ? (
         <ProductDialog
           open
           user={user}
@@ -84,7 +84,7 @@ export function ProductList() {
           onSaved={() => saved('Producto guardado.')}
         />
       ) : null}
-      {action === 'eliminar' && deleting ? (
+      {canWrite && action === 'eliminar' && deleting ? (
         <DeleteConfirm product={deleting} onCancel={close} onDeleted={() => saved('Producto eliminado.')} />
       ) : null}
     </Stack>
