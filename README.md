@@ -60,6 +60,17 @@ No pide token. Lee `data/productos.csv`, crea categorías, subcategorías y prod
 
 `GET /categories/:categoryCode/subcategories` pide el token y devuelve la categoría, sus subcategorías con productos, y los productos sin subcategoría.
 
+## Productos
+
+Con sesión. El listado y el detalle los ven admin y manager. Crear, editar y borrar solo el admin.
+
+- `GET /products` y `GET /products/:id`
+- `POST /products` y `PUT /products/:id`, con el token en el body
+- `GET /products/:id/delete`
+- `GET /categories` para las listas del formulario
+
+El UPC nuevo tiene 12 dígitos y es único. La subcategoría tiene que pertenecer a la categoría. Las fechas viajan en UTC, por ejemplo `2026-01-15T14:30:00Z`.
+
 ## Front
 
 Puerto 3001.
@@ -72,4 +83,4 @@ npm run dev
 
 ## Estado
 
-La base, el acceso, la carga del CSV y la consulta de una categoría ya están. El Front inicia sesión. El listado de productos y el CRUD siguen el orden de [`ia/planes/plan-inicial.md`](ia/planes/plan-inicial.md).
+La base, el acceso, la carga del CSV y el CRUD de productos ya están. El Front inicia sesión y reparte el catálogo en `/productos`, `/productos/:id`, `/categorias` y `/categorias/:code`. Alta, edición y borrado se abren en diálogo. Lo que falta sigue el orden de [`ia/planes/plan-inicial.md`](ia/planes/plan-inicial.md).

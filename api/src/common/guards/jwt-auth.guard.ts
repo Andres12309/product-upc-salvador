@@ -43,9 +43,7 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private readToken(request: RequestWithUser): string | null {
-    const method = (request.method ?? 'GET').toUpperCase();
-    const writesBody = method === 'POST' || method === 'PUT' || method === 'PATCH';
-    if (writesBody && typeof request.body?.token === 'string' && request.body.token.length > 0) {
+    if (typeof request.body?.token === 'string' && request.body.token.length > 0) {
       return request.body.token;
     }
 

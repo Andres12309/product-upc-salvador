@@ -1,3 +1,4 @@
+import { CategoryItemDto } from '../dto/category-item.dto.js';
 import { CategoryTreeDto, ProductRefDto, SubcategoryViewDto } from '../dto/category-tree.dto.js';
 
 type ProductSource = {
@@ -24,6 +25,12 @@ export class CategoryMapper {
       return view;
     });
     dto.pending = input.pendingProducts.map(CategoryMapper.toProduct);
+    return dto;
+  }
+
+  static toItem(code: string): CategoryItemDto {
+    const dto = new CategoryItemDto();
+    dto.code = code;
     return dto;
   }
 

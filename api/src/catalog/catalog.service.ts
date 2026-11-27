@@ -1,14 +1,19 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PasswordHasher } from '@nestjs/authentication';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ensureDefaultUsers } from '../users/users.service.js';
+import { CategoryItemDto } from './dto/category-item.dto.js';
 import { CategoryTreeDto } from './dto/category-tree.dto.js';
 import { LoadSummaryDto } from './dto/load-summary.dto.js';
+import { ProductViewDto } from './dto/product-view.dto.js';
+import { ProductWriteDto } from './dto/product-write.dto.js';
 import { classify, parseCsv, type ExistingProduct, type ParsedRow } from './load-csv.js';
 import { CategoryMapper } from './mappers/category.mapper.js';
 import { LoadMapper } from './mappers/load.mapper.js';
+import { ProductMapper } from './mappers/product.mapper.js';
 
 @Injectable()
 export class CatalogService {
@@ -183,8 +188,124 @@ export class CatalogService {
 
     return LoadMapper.toSummary(saved);
   }
+
+  async categories(): Promise<CategoryItemDto[]> {
+    const rows = await this.prisma.category.findMany({ orderBy: { code: 'asc' }, select: { code: true } });
+    return rows.map((row) => CategoryMapper.toItem(row.code));
+  }
+
+  async products(): Promise<ProductViewDto[]> {
+    const rows = await this.prisma.product.findMany({
+      orderBy: { upcDescription: 'asc' },
+      include: productInclude,
+    });
+    return rows.map((row) => ProductMapper.toView(row));
+  }
+
+  async product(id: string): Promise<ProductViewDto> {
+    const row = await this.findProduct(id);
+    return ProductMapper.toView(row);
+  }
+
+  async createProduct(input: ProductWriteDto): Promise<ProductViewDto> {
+    const data = await this.productData(input);
+    try {
+      const row = await this.prisma.product.create({ data, include: productInclude });
+      return ProductMapper.toView(row);
+    } catch (error) {
+      throw upcConflict(error);
+    }
+  }
+
+  async updateProduct(id: string, input: ProductWriteDto): Promise<ProductViewDto> {
+    await this.findProduct(id);
+    const data = await this.productData(input, id);
+    try {
+      const row = await this.prisma.product.update({ where: { id }, data, include: productInclude });
+      return ProductMapper.toView(row);
+    } catch (error) {
+      throw upcConflict(error);
+    }
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await this.findProduct(id);
+    await this.prisma.product.delete({ where: { id } });
+  }
+
+  private async findProduct(id: string) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new NotFoundException('No existe el producto.');
+    }
+    const row = await this.prisma.product.findUnique({ where: { id }, include: productInclude });
+    if (!row) throw new NotFoundException('No existe el producto.');
+    return row;
+  }
+
+  private async productData(input: ProductWriteDto, ignoreId?: string) {
+    const taken = await this.prisma.product.findUnique({
+      where: { upcCode: input.upcCode },
+      select: { id: true },
+    });
+    if (taken && taken.id !== ignoreId) throw new ConflictException('El UPC ya existe.');
+
+    const subcategory = await this.prisma.subcategory.findUnique({
+      where: { code: input.subCategoryCode },
+      select: { id: true, category: { select: { code: true } } },
+    });
+    if (!subcategory) throw new BadRequestException('La subcategoría no existe.');
+    if (subcategory.category.code !== input.categoryCode) {
+      throw new BadRequestException('La subcategoría no pertenece a la categoría.');
+    }
+
+    return {
+      upcCode: input.upcCode,
+      upcDescription: input.upcDescription,
+      subcategoryId: subcategory.id,
+      categoryId: null,
+      needsAttention: false,
+      attentionReason: null,
+      dateAdded: parseUtc(input.dateAdded),
+      updatedDate: parseUtc(input.updatedDate),
+      addedBy: input.addedBy,
+      modifiedBy: input.modifiedBy,
+    };
+  }
 }
+
+const productInclude = {
+  subcategory: { select: { code: true, category: { select: { code: true } } } },
+  category: { select: { code: true } },
+} as const;
 
 function unique(values: string[]): string[] {
   return [...new Set(values)];
+}
+
+function parseUtc(value: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/.exec(value);
+  if (!match) throw new BadRequestException('La fecha no es válida.');
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const utc = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  const real =
+    utc.getUTCFullYear() === year &&
+    utc.getUTCMonth() === month - 1 &&
+    utc.getUTCDate() === day &&
+    hour <= 23 &&
+    minute <= 59 &&
+    second <= 59;
+  if (!real) throw new BadRequestException('La fecha no es válida.');
+  return utc;
+}
+
+function upcConflict(error: unknown): unknown {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    return new ConflictException('El UPC ya existe.');
+  }
+  return error;
 }
