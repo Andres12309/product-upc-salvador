@@ -114,7 +114,7 @@ Eso publica la API en el puerto 3000. Si ya corre con `npm run start:dev`, no us
 
 - El UPC se guarda como texto de 12 caracteres. Un cero a la izquierda distingue dos códigos, así que no es un número.
 - La contraseña se guarda con hash scrypt. En la base no está el texto `Admin123!`.
-- Un error no previsto responde «Error interno del servidor», sin stack ni SQL.
+- Un error no previsto responde 500 con el mensaje técnico y el stack en `detail`.
 - Las pruebas corren con Vitest (`npm test`). Nest 12 es ESM y Jest no levanta esta API.
 - Una fila del CSV con el mismo UPC y otros datos no crea otro producto: el aviso queda en el que ya existe.
 - La categoría no tiene nombre. El CSV solo trae el código.

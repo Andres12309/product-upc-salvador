@@ -15,13 +15,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    this.logger.error(
-      exception instanceof Error ? exception.message : 'Error interno del servidor',
-      exception instanceof Error ? exception.stack : undefined,
-    );
+    const message = exception instanceof Error ? exception.message : String(exception);
+    const detail = exception instanceof Error ? exception.stack : undefined;
+    this.logger.error(message, detail);
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: 'Error interno del servidor',
+      message,
+      detail,
     });
   }
 }
