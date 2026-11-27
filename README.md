@@ -41,8 +41,12 @@ Puerto 3000.
 ```bash
 cd api
 npm install
+npm run db:deploy
+npm run db:seed
 npm run start:dev
 ```
+
+`db:deploy` aplica la migración. `db:seed` crea `admin@prueba.local` / `Admin123!` y `manager@prueba.local` / `Manager123!` si todavía no existen. El login es `GET /auth/login`.
 
 ## Front
 
@@ -56,4 +60,4 @@ npm run dev
 
 ## Estado
 
-En este punto el repositorio levanta la base, la API de ejemplo y el Front de ejemplo. El esquema, la carga del CSV y las pantallas del catálogo siguen el orden de [`ia/planes/plan-inicial.md`](ia/planes/plan-inicial.md).
+La base, el esquema y el acceso ya están. El Front inicia sesión y guarda el token. La carga del CSV y el catálogo siguen el orden de [`ia/planes/plan-inicial.md`](ia/planes/plan-inicial.md).

@@ -22,8 +22,6 @@ services:
       timeout: 3s
       retries: 10
 
-  # Opcional: cliente web para inspeccionar la base de datos.
-  # Se levanta con: docker compose --profile tools up -d
   adminer:
     image: adminer:4.8.1
     container_name: prueba-upc-adminer

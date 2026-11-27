@@ -30,8 +30,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Secretos locales. La URL pública de la API sí se versiona en web/.env.
+.env*.local
 
 # vercel
 .vercel
